@@ -1,36 +1,39 @@
+import { shallowEqual, useSelector } from "react-redux"
+
 const askGraphQL = async (
   payload,
   action = 'fetching from the server',
-  token = null,
+  sessionToken = null,
   applicationConfig
 ) => {
   const response = await fetch(applicationConfig.graphqlEndpoint, {
     method: 'POST',
     mode: 'cors',
-    credentials: 'include',
+    credentials: 'omit',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      Authorization: `Bearer ${sessionToken}`
     },
     body: JSON.stringify(payload),
   })
 
   if (!response.ok) {
-    try {
-      let responseJson = await response.json()
-      if (responseJson) {
-        responseJson = responseJson.errors || [{ message: 'Unexpected error!' }]
-      }
-      if (responseJson) {
-        responseJson = responseJson[0].message
-      }
-      console.error(`Something wrong happened during: ${action} => ${response.status}, ${response.statusText}: ${JSON.stringify(responseJson)}`)
-      throw new Error(responseJson)
-    } catch (err) {
-      const responseText = await response.text()
-      console.error(`Something wrong happened during: ${action} => ${response.status}, ${response.statusText}: ${responseText}`)
-      throw new Error(`${response.status} ${response.statusText}: ${responseText}`)
+    let res = await response.json()
+    if (res) {
+      res = res.errors || [{ message: 'problem' }]
     }
+    if (res) {
+      res = res[0].message
+    }
+    console.error(
+      `${JSON.stringify(
+        res
+      )}.\nSomething wrong happened during: ${action} =>  ${response.status}, ${
+        response.statusText
+      }.`
+    )
+    throw new Error(res)
   }
 
   const json = await response.json()
@@ -38,6 +41,15 @@ const askGraphQL = async (
     throw new Error(json.errors[0].message)
   }
   return json.data
+}
+
+export function useGraphQL () {
+  const sessionToken = useSelector(state => state.sessionToken)
+  const graphqlEndpoint = useSelector(state => state.applicationConfig.graphqlEndpoint, shallowEqual)
+
+  return function callStyloGrapQLApi ({ query, variables }) {
+    return askGraphQL({ query, variables }, null, sessionToken, { graphqlEndpoint })
+  }
 }
 
 export default askGraphQL
