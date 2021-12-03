@@ -1,24 +1,22 @@
 import React, { useState } from 'react'
-import { connect } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { Check } from 'react-feather'
 
 import etv from '../helpers/eventTargetValue'
-import askGraphQL from '../helpers/graphQL'
+import { useGraphQL } from '../helpers/graphQL'
 
 import styles from './createArticle.module.scss'
 import Button from './Button'
 import Field from './Field'
 import Tag from './Tag'
 
-const mapStateToProps = ({ activeUser, sessionToken, applicationConfig }) => {
-  return { activeUser, sessionToken, applicationConfig }
-}
-
-const ConnectedCreateArticle = (props) => {
+function CreateArticle (props) {
   const [title, setTitle] = useState('')
   const [tagsSelected, setTagsSelected] = useState(
     props.tags.map((t) => Object.assign(t, { selected: false }))
   )
+  const userId = useSelector(state => state.activeUser._id)
+  const runQuery = useGraphQL()
 
   const findAndUpdateTag = (tags, id) => {
     const immutableTags = structuredClone(tags)
@@ -36,18 +34,13 @@ const ConnectedCreateArticle = (props) => {
     )
     .join(' ')
   const query = baseQuery + addToTag + '}'
-  const variables = { user: props.activeUser._id, title }
+  const variables = { user: userId, title }
 
-  const createTag = async (event, cb, query, variables, token) => {
+  const createTag = async (event, query, variables) => {
     try {
       event.preventDefault()
-      await askGraphQL(
-        { query, variables },
-        'creating new Article',
-        token,
-        props.applicationConfig
-      )
-      cb()
+      await runQuery({ query, variables })
+      props.triggerReload()
     } catch (err) {
       alert(err)
     }
@@ -55,17 +48,7 @@ const ConnectedCreateArticle = (props) => {
 
   return (
     <section className={styles.create}>
-      <form
-        onSubmit={(event) => {
-          createTag(
-            event,
-            props.triggerReload,
-            query,
-            variables,
-            props.sessionToken
-          )
-        }}
-      >
+      <form onSubmit={(event) => createTag(event, query, variables)}>
         <Field
           type="text"
           placeholder="Article title"
@@ -108,5 +91,4 @@ const ConnectedCreateArticle = (props) => {
   )
 }
 
-const CreateArticle = connect(mapStateToProps)(ConnectedCreateArticle)
 export default CreateArticle

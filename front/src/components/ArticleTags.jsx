@@ -1,15 +1,12 @@
 import React from 'react'
-import { connect } from 'react-redux'
-
-import askGraphQL from '../helpers/graphQL'
+import { shallowEqual, useSelector } from 'react-redux'
+import { useGraphQL } from '../helpers/graphQL'
 
 import Tag from './Tag'
 
-const mapStateToProps = ({ activeUser, sessionToken, applicationConfig }) => {
-  return { activeUser, sessionToken, applicationConfig }
-}
-
-const ConnectedArticleTags = ({ article, activeUser, masterTags, stateTags, setTags, sessionToken, applicationConfig }) => {
+export default function ArticleTags ({ article, masterTags, stateTags, setTags }) {
+  const activeUser = useSelector(state => state.activeUser, shallowEqual)
+  const runQuery = useGraphQL()
   const articleId = article._id
   const isArticleOwner = activeUser._id === article.owner._id
 
@@ -23,12 +20,7 @@ const ConnectedArticleTags = ({ article, activeUser, masterTags, stateTags, setT
         tag: tag._id,
         user: activeUser._id,
       }
-      await askGraphQL(
-        { query, variables },
-        'adding to tag',
-        sessionToken,
-        applicationConfig
-      )
+      await runQuery({ query, variables })
     } catch (err) {
       alert(err)
     }
@@ -43,12 +35,7 @@ const ConnectedArticleTags = ({ article, activeUser, masterTags, stateTags, setT
         tag: id,
         user: activeUser._id,
       }
-      await askGraphQL(
-        { query, variables },
-        'removing from tag',
-        sessionToken,
-        applicationConfig
-      )
+      await runQuery({ query, variables })
     } catch (err) {
       alert(err)
     }
@@ -82,6 +69,3 @@ const ConnectedArticleTags = ({ article, activeUser, masterTags, stateTags, setT
     </ul>
   )
 }
-
-const ArticleTags = connect(mapStateToProps)(ConnectedArticleTags)
-export default ArticleTags

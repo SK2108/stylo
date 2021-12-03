@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { connect } from 'react-redux'
+import { shallowEqual, useSelector } from 'react-redux'
 
-import askGraphQL from '../helpers/graphQL'
+import { useGraphQL } from '../helpers/graphQL'
 import etv from '../helpers/eventTargetValue'
 
 import Article from './Article'
@@ -14,11 +14,9 @@ import Field from './Field'
 import { Search } from 'react-feather'
 import Tag from './Tag'
 
-const mapStateToProps = ({ activeUser, sessionToken, applicationConfig }) => {
-  return { activeUser, sessionToken, applicationConfig }
-}
+export default function Articles () {
+  const activeUser = useSelector(state => state.activeUser, shallowEqual)
 
-const ConnectedArticles = (props) => {
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState('')
   const [articles, setArticles] = useState([])
@@ -29,12 +27,9 @@ const ConnectedArticles = (props) => {
   const [needReload, setNeedReload] = useState(true)
   const [tagManagement, setTagManagement] = useState(false)
   const [owners, setOwners] = useState([])
+  const runQuery = useGraphQL()
 
-  const { displayName } = props.activeUser
-
-  const handleReload = useCallback(() => {
-    setNeedReload(true)
-  }, [])
+  const handleReload = useCallback(() => setNeedReload(true), [])
 
   const handleUpdateTags = useCallback((articleId, tags) => {
     setArticles([...findAndUpdateArticleTags(articles, articleId, tags)])
@@ -146,19 +141,14 @@ const ConnectedArticles = (props) => {
     }
   }`
 
-  const user = { user: props.activeUser._id }
-
   useEffect(() => {
     if (needReload) {
       //Self invoking async function
       (async () => {
         try {
-          const data = await askGraphQL(
-            { query, variables: user },
-            'fetching articles',
-            props.sessionToken,
-            props.applicationConfig
-          )
+          setIsLoading(true)
+          const data = await runQuery({ query, variables: { user: activeUser._id } })
+
           //Need to sort by updatedAt desc
           setArticles(data.user.articles)
           const tags = data.user.tags.map((t) => ({
@@ -169,7 +159,7 @@ const ConnectedArticles = (props) => {
           const owners = [
             ...new Map(
               data.user.articles.map(a => {
-                if (a.owner._id === props.activeUser._id) {
+                if (a.owner._id === activeUser._id) {
                   return [a.owner._id, { ...a.owner, ...{ displayName: 'me' } }]
                 } else {
                   return [a.owner._id, a.owner]
@@ -177,10 +167,10 @@ const ConnectedArticles = (props) => {
               })
             ).values()
           ].sort((a, b) => {
-            if (a._id === props.activeUser._id) {
+            if (a._id === activeUser._id) {
               return -1
             }
-            if (b._id === props.activeUser._id) {
+            if (b._id === activeUser._id) {
               return 1
             }
             return a.displayName > b.displayName
@@ -202,7 +192,7 @@ const ConnectedArticles = (props) => {
 
   return (
     <section className={styles.section}>
-      <h1>{articles.length} articles for {displayName}</h1>
+      <h1>{articles.length} articles for {activeUser.displayName}</h1>
       <ul className={styles.horizontalMenu}>
         <li>
           <Button primary={true} onClick={() => setCreatingArticle(true)}>
@@ -243,7 +233,7 @@ const ConnectedArticles = (props) => {
                 <li key={`filterTag-${t._id}`}>
                   <Tag
                     tag={t}
-                    activeUser={props.activeUser}
+                    activeUser={activeUser}
                     name={`filterTag-${t._id}`}
                     onClick={() => {
                       // shallow copy otherwise React won't render the components again
@@ -296,6 +286,3 @@ const ConnectedArticles = (props) => {
     </section>
   )
 }
-
-const Articles = connect(mapStateToProps)(ConnectedArticles)
-export default Articles

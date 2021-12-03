@@ -1,8 +1,7 @@
 import { useDispatch } from "react-redux"
-import { useGraphQL } from "../helpers/graphQL"
+import askGraphQL from "../helpers/graphQL"
 
-export function getUserProfile() {
-  const runQuery = useGraphQL()
+export function getUserProfile(applicationConfig) {
   const query = `query {
     user {
       _id
@@ -35,7 +34,7 @@ export function getUserProfile() {
     }
   }`
 
-  return runQuery({ query })
+  return askGraphQL({ query }, 'userProfile', null, applicationConfig)
 }
 
 export function useProfile () {

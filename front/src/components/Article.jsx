@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { connect } from 'react-redux'
+import { shallowEqual, useSelector } from 'react-redux'
 
 import styles from './Articles.module.scss'
 import buttonStyles from './button.module.scss'
@@ -14,19 +14,15 @@ import ArticleTags from './ArticleTags'
 import formatTimeAgo from '../helpers/formatTimeAgo'
 import { generateArticleExportId } from "../helpers/identifier"
 import etv from '../helpers/eventTargetValue'
-import askGraphQL from '../helpers/graphQL'
 
 import Field from './Field'
 import Button from './Button'
 import { Check, ChevronDown, ChevronRight, Copy, Edit3, Eye, Printer, Share2, Trash } from 'react-feather'
 
 import AcquintanceService from '../services/AcquintanceService'
+import { useGraphQL } from '../helpers/graphQL'
 
-const mapStateToProps = ({ activeUser, sessionToken, applicationConfig }) => {
-  return { activeUser, sessionToken, applicationConfig }
-}
-
-const ConnectedArticle = ({ article, applicationConfig, activeUser, sessionToken, setNeedReload, updateTitleHandler, updateTagsHandler, masterTags }) => {
+export default function Article ({ article, setNeedReload, updateTitleHandler, updateTagsHandler, masterTags }) {
   const [expanded, setExpanded] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -35,9 +31,11 @@ const ConnectedArticle = ({ article, applicationConfig, activeUser, sessionToken
   const [title, setTitle] = useState(article.title)
   const [tempTitle, setTempTitle] = useState(article.title)
   const [sharing, setSharing] = useState(false)
+  const activeUser = useSelector(state => state.activeUser, shallowEqual)
+  const runQuery = useGraphQL()
 
   const isArticleOwner = activeUser._id === article.owner._id
-  const acquintanceService = new AcquintanceService(activeUser._id, applicationConfig)
+  const acquintanceService = new AcquintanceService(activeUser._id, runQuery)
 
   const contributors = [].concat(article.contributors, activeUser.permissions).filter(c => c.user._id !== article.owner._id)
 
@@ -59,12 +57,7 @@ const ConnectedArticle = ({ article, applicationConfig, activeUser, sessionToken
       article: article._id,
       title: tempTitle,
     }
-    await askGraphQL(
-      { query, variables },
-      'Renaming Article',
-      sessionToken,
-      applicationConfig
-    )
+    await runQuery({ query, variables })
     setTitle(tempTitle)
     setRenaming(false)
     if (updateTitleHandler) {
@@ -205,6 +198,3 @@ const ConnectedArticle = ({ article, applicationConfig, activeUser, sessionToken
     </article>
   )
 }
-
-const Article = connect(mapStateToProps)(ConnectedArticle)
-export default Article

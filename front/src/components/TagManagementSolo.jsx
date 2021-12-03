@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { connect } from 'react-redux'
-import askGraphQL from '../helpers/graphQL'
+import { useSelector } from 'react-redux'
+import { useGraphQL } from '../helpers/graphQL'
 import etv from '../helpers/eventTargetValue'
 
 import { ChevronDown, ChevronRight, Edit3, Check, Trash } from 'react-feather'
@@ -9,44 +9,32 @@ import styles from './tagManagementSolo.module.scss'
 import Button from './Button'
 import Field from './Field'
 
-const mapStateToProps = ({ activeUser, sessionToken, applicationConfig }) => {
-  return { activeUser, sessionToken, applicationConfig }
-}
-
-export default connect(mapStateToProps)((props) => {
+export default function tagManagementSolo (props) {
   const [expanded, setExpanded] = useState(false)
   const [edit, setEdit] = useState(false)
   const [tempName, setTempName] = useState(props.t.name)
   const [tempDescription, setTempDescription] = useState(props.t.description)
   const [tempColor, setTempColor] = useState(props.t.color)
+  const userId = useSelector(state => state.activeUser._id)
+  const runQuery = useGraphQL()
 
   const deleteTag = async (id) => {
     const query = `mutation($user:ID!,$tag:ID!){deleteTag(user:$user,tag:$tag){ _id }}`
-    const variables = { user: props.activeUser._id, tag: props.t._id }
-    await askGraphQL(
-      { query, variables },
-      'Deleting tag',
-      props.sessionToken,
-      props.applicationConfig
-    )
+    const variables = { user: userId, tag: props.t._id }
+    await runQuery({ query, variables })
     props.setNeedReload()
   }
 
   const saveTag = async () => {
     const query = `mutation($user:ID!,$tag:ID!,$color:String!,$name:String!,$description:String!){updateTag(user:$user,tag:$tag,name:$name,description:$description,color:$color){ _id name description color }}`
     const variables = {
-      user: props.activeUser._id,
+      user: userId,
       tag: props.t._id,
       name: tempName,
       description: tempDescription,
       color: tempColor,
     }
-    await askGraphQL(
-      { query, variables },
-      'update tag',
-      props.sessionToken,
-      props.applicationConfig
-    )
+    await runQuery({ query, variables })
     props.setNeedReload()
     setEdit(false)
   }
@@ -121,4 +109,4 @@ export default connect(mapStateToProps)((props) => {
       )}
     </div>
   )
-})
+}
