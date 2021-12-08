@@ -13,7 +13,7 @@ const askGraphQL = async (
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      Authorization: `Bearer ${sessionToken}`
+      Authorization: sessionToken ? `Bearer ${sessionToken}` : ''
     },
     body: JSON.stringify(payload),
   })
