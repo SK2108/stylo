@@ -17,8 +17,10 @@ import WriteRight from './WriteRight'
 import Compare from './Compare'
 import CompareSelect from './CompareSelect'
 import Loading from '../Loading'
+import WorkingVersion from "./WorkingVersion";
 
 function Write() {
+  const articleStats = useSelector(state => state.articleStats, shallowEqual)
   const { version: currentVersion, id: articleId, compareTo } = useParams()
   const userId = useSelector((state) => state.activeUser._id)
   const applicationConfig = useSelector(
@@ -265,16 +267,12 @@ function Write() {
   return (
     <section className={styles.container}>
       <WriteLeft
-        articleInfos={articleInfos}
         compareTo={compareTo}
         selectedVersion={currentVersion}
         readOnly={readOnly}
         onTableOfContentClick={handleUpdateCursorPosition}
-      />
-      <WriteRight
         yaml={live.yaml}
         handleYaml={handleYaml}
-        readOnly={readOnly}
       />
       {compareTo && (
         <CompareSelect
@@ -285,9 +283,12 @@ function Write() {
           readOnly={readOnly}
         />
       )}
-
       <article className={styles.article}>
         <>
+          <WorkingVersion
+            articleInfos={articleInfos}
+            readOnly={readOnly}
+          />
           {readOnly && <pre>{live.md}</pre>}
           {!readOnly && (
             <CodeMirror
@@ -304,6 +305,11 @@ function Write() {
           )}
           {compareTo && <Compare compareTo={compareTo} md={live.md} />}
         </>
+        <ul className={styles.stats}>
+          <li>Words : {articleStats.wordCount}</li>
+          <li>Characters : {articleStats.charCountNoSpace} (with spaces: {articleStats.charCountPlusSpace})</li>
+          <li>Citations : {articleStats.citationNb}</li>
+        </ul>
       </article>
     </section>
   )
