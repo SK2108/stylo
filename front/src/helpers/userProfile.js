@@ -1,7 +1,7 @@
-import { useDispatch } from "react-redux"
+import { shallowEqual, useDispatch, useSelector } from "react-redux"
 import askGraphQL from "../helpers/graphQL"
 
-export function getUserProfile(applicationConfig) {
+export function getUserProfile({ applicationConfig, sessionToken }) {
   const query = `query {
     user {
       _id
@@ -34,14 +34,16 @@ export function getUserProfile(applicationConfig) {
     }
   }`
 
-  return askGraphQL({ query }, 'userProfile', null, applicationConfig)
+  return askGraphQL({ query }, 'userProfile', sessionToken, applicationConfig)
 }
 
 export function useProfile () {
   const dispatch = useDispatch()
+  const applicationConfig = useSelector(state => state.applicationConfig, shallowEqual)
+  const sessionToken = useSelector(state => state.sessionToken)
 
   return function refreshProfile () {
-    return getUserProfile()
+    return getUserProfile({ applicationConfig, sessionToken })
       .then((response) => dispatch({ type: 'PROFILE', ...response }))
   }
 }
